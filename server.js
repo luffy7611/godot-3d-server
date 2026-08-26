@@ -1,54 +1,74 @@
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: process.env.PORT || 3000 });
+const { WebSocketServer } = require('ws');
+
+// استخدام البورت اللي توفره منصة Render تلقائياً، أو البورت 3000 محلياً
+const PORT = process.env.PORT || 3000;
+const wss = new WebSocketServer({ port: PORT });
+
+console.log(`Server is running on port ${PORT}`);
 
 let players = {};
 
 wss.on('connection', (ws) => {
-    let playerId = Math.random().toString(36).substring(7);
-    console.log('Player connected: ' + playerId);
+    // إنشاء معرف فريد لكل لاعب يدخل
+    const playerId = Math.random().toString(36.substring(2, 9));
+    console.log(`Player connected: ${playerId}`);
 
-    ws.send(JSON.stringify({ type: 'WELCOME', id: playerId }));
+    // إرسال رسالة ترحيبية للمتصل الجديد مع معرّفه
+    ws.send(JSON.stringify({
+        type: "WELCOME",
+        id: playerId
+    }));
 
+    // استقبال البيانات من اللاعب (مثل الإحداثيات والحركة)
     ws.on('message', (message) => {
-        let data;
         try {
-            data = JSON.parse(message);
-        } catch (e) {
-            return;
-        }
-        
-        if (data.type === 'MOVE') {
-            players[playerId] = { 
-                x: data.x, 
-                y: data.y, 
-                z: data.z,
-                rot: data.rot 
-            };
+            const data = JSON.parse(message);
             
-            wss.clients.forEach((client) => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({
-                        type: 'PLAYER_MOVE',
-                        id: playerId,
-                        x: data.x,
-                        y: data.y,
-                        z: data.z,
-                        rot: data.rot
-                    }));
-                }
-            });
+            if (data.type === "MOVE") {
+                // حفظ موقع اللاعب وتحديثه
+                players[playerId] = {
+                    x: data.x,
+                    y: data.y,
+                    z: data.z,
+                    rot: data.rot
+                };
+
+                // إعادة إرسال موقع اللاعب لكل اللاعبين الثانيين (بما فيهم البقية)
+                const broadcastData = JSON.stringify({
+                    type: "PLAYER_MOVE",
+                    id: playerId,
+                    x: data.x,
+                    y: data.y,
+                    z: data.z,
+                    rot: data.rot
+                });
+
+                wss.clients.forEach((client) => {
+                    if (client.readyState === client.OPEN) {
+                        client.send(broadcastData);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Error parsing message:", e);
         }
     });
 
+    // عندما ينقطع اتصال اللاعب
     ws.on('close', () => {
-        console.log('Player disconnected: ' + playerId);
+        console.log(`Player disconnected: ${playerId}`);
         delete players[playerId];
+
+        // إبلاغ البقية أن اللاعب خرج
+        const disconnectData = JSON.stringify({
+            type: "PLAYER_DISCONNECT",
+            id: playerId
+        });
+
         wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ type: 'PLAYER_DISCONNECTED', id: playerId }));
+            if (client.readyState === client.OPEN) {
+                client.send(disconnectData);
             }
         });
     });
 });
-
-console.log('Godot 3D Game Server is running...');
