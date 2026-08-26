@@ -5,7 +5,7 @@ let players = {};
 
 wss.on('connection', (ws) => {
     let playerId = Math.random().toString(36).substring(7);
-    console.log(`Player connected: `${playerId}`);
+    console.log('Player connected: ' + playerId);
 
     ws.send(JSON.stringify({ type: 'WELCOME', id: playerId }));
 
@@ -16,7 +16,7 @@ wss.on('connection', (ws) => {
         } catch (e) {
             return;
         }
-
+        
         if (data.type === 'MOVE') {
             players[playerId] = { 
                 x: data.x, 
@@ -24,7 +24,7 @@ wss.on('connection', (ws) => {
                 z: data.z,
                 rot: data.rot 
             };
-
+            
             wss.clients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
                     client.send(JSON.stringify({
@@ -41,7 +41,7 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
-        console.log(`Player disconnected: ${playerId}`);
+        console.log('Player disconnected: ' + playerId);
         delete players[playerId];
         wss.clients.forEach((client) => {
             if (client.readyState === WebSocket.OPEN) {
