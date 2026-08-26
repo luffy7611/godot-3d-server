@@ -9,8 +9,8 @@ console.log(`Server is running on port ${PORT}`);
 let players = {};
 
 wss.on('connection', (ws) => {
-    // إنشاء معرف فريد لكل لاعب يدخل
-    const playerId = Math.random().toString(36.substring(2, 9));
+    // إنشاء معرف فريد لكل لاعب يدخل (تم تصحيح السطر هنا)
+    const playerId = Math.random().toString(36).substring(2, 9);
     console.log(`Player connected: ${playerId}`);
 
     // إرسال رسالة ترحيبية للمتصل الجديد مع معرّفه
@@ -33,7 +33,7 @@ wss.on('connection', (ws) => {
                     rot: data.rot
                 };
 
-                // إعادة إرسال موقع اللاعب لكل اللاعبين الثانيين (بما فيهم البقية)
+                // إعادة إرسال موقع اللاعب لكل اللاعبين الثانيين
                 const broadcastData = JSON.stringify({
                     type: "PLAYER_MOVE",
                     id: playerId,
